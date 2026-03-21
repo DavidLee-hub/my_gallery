@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gallery</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── 헤더 ── -->
+  <header class="site-header">
+    <span class="site-name">your name</span>
+    <nav class="site-nav">
+      <a href="#" class="nav-link active" data-view="viewer">갤러리</a>
+      <a href="about.html" class="nav-link">어바웃</a>
+    </nav>
+  </header>
+
+  <!-- ── 카테고리 바 ── -->
+  <div class="cat-bar">
+    <button class="cat-btn active" data-cat="all">전체</button>
+    <button class="cat-btn" data-cat="travel">여행사진</button>
+    <button class="cat-btn" data-cat="long-exposure">장노출</button>
+    <button class="cat-btn" data-cat="typological">유형적</button>
+    <button class="cat-btn" data-cat="series">연작시리즈</button>
+    <button class="cat-btn" data-cat="recent">최근 작업</button>
+  </div>
+
+  <!-- ── 메인 뷰어 ── -->
+  <main class="viewer-wrap">
+
+    <!-- 좌우 화살표 -->
+    <button class="arrow arrow-left" id="btn-prev" aria-label="이전 사진">&#8592;</button>
+    <button class="arrow arrow-right" id="btn-next" aria-label="다음 사진">&#8594;</button>
+
+    <!-- 메인 사진 영역 -->
+    <div class="viewer-stage">
+      <div class="main-photo-wrap">
+        <img class="main-photo" id="main-img" src="" alt="" draggable="false">
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── 썸네일 스트립 ── -->
+  <div class="strip-outer">
+    <div class="strip-inner" id="strip"></div>
+  </div>
+
+  <!-- ── 메타 정보 ── -->
+  <div class="meta-bar">
+    <div class="meta-left">
+      <div class="meta-title" id="meta-title"></div>
+      <div class="meta-sub" id="meta-sub"></div>
+    </div>
+    <div class="meta-right" id="meta-exif"></div>
+  </div>
+
+  <!-- ── 전체 목록 보기 버튼 ── -->
+  <div class="grid-toggle-wrap">
+    <button class="grid-toggle-btn" id="btn-grid-toggle">전체 목록 보기</button>
+  </div>
+
+  <!-- ── 전체 목록 그리드 (숨김) ── -->
+  <section class="photo-grid" id="photo-grid"></section>
+
+  <!-- ── 푸터 ── -->
+  <footer class="site-footer">
+    <span id="footer-name">your name</span>
+    <span class="footer-sep">·</span>
+    <span id="footer-year"></span>
+  </footer>
+
+  <script src="gallery.js"></script>
+</body>
+</html>

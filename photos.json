@@ -1,0 +1,80 @@
+[
+  {
+    "id": "001",
+    "title": "경기 야경",
+    "date": "2025-11-03",
+    "category": "travel",
+    "location": "경기도",
+    "file": "images/travel/cheugdo.jpg",
+    "thumb": "images/travel/cheugdo.jpg",
+    "aperture": "f/8",
+    "shutter": "30s",
+    "iso": 100,
+    "focal": "24mm"
+  },
+  {
+    "id": "002",
+    "title": "설악산 운무",
+    "date": "2025-10-15",
+    "category": "travel",
+    "location": "강원도",
+    "file": "images/travel/seorak-mist.jpg",
+    "thumb": "images/travel/seorak-mist.jpg",
+    "aperture": "f/11",
+    "shutter": "1/250s",
+    "iso": 200,
+    "focal": "35mm"
+  },
+  {
+    "id": "003",
+    "title": "제주 해안",
+    "date": "2025-09-22",
+    "category": "travel",
+    "location": "제주",
+    "file": "images/travel/jeju-coast.jpg",
+    "thumb": "images/travel/jeju-coast.jpg",
+    "aperture": "f/9",
+    "shutter": "1/500s",
+    "iso": 100,
+    "focal": "50mm"
+  },
+  {
+    "id": "004",
+    "title": "부산 야항",
+    "date": "2025-08-10",
+    "category": "long-exposure",
+    "location": "Busan",
+    "file": "images/long-exposure/busan-night.jpg",
+    "thumb": "images/long-exposure/busan-night.jpg",
+    "aperture": "f/8",
+    "shutter": "15s",
+    "iso": 200,
+    "focal": "28mm"
+  },
+  {
+    "id": "005",
+    "title": "전봇대 #1",
+    "date": "2025-07-05",
+    "category": "typological",
+    "location": "Seoul",
+    "file": "images/typological/pole-01.jpg",
+    "thumb": "images/typological/pole-01.jpg",
+    "aperture": "f/8",
+    "shutter": "1/200s",
+    "iso": 100,
+    "focal": "85mm"
+  },
+  {
+    "id": "006",
+    "title": "한강 프로젝트 #1",
+    "date": "2025-06-20",
+    "category": "series",
+    "location": "Seoul",
+    "file": "images/series/hangang-01.jpg",
+    "thumb": "images/series/hangang-01.jpg",
+    "aperture": "f/5.6",
+    "shutter": "1/1000s",
+    "iso": 400,
+    "focal": "35mm"
+  }
+]
