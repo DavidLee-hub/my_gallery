@@ -85,6 +85,54 @@
   color: var(--c-text);
 }
 
+/* ── 검색 바 ── */
+.search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+/* ══════════════════════════════════════════
+   프로필 페이지
+══════════════════════════════════════════ */
+.profile-card {
+  background: var(--c-bg-section);
+  border: 1px solid var(--c-border);
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 8px;
+}
+
+.profile-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.profile-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gray-500);
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.profile-value {
+  font-size: 15px;
+  color: var(--c-text-muted);
+}
+
+.profile-nickname-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
 /* ══════════════════════════════════════════
    게시판 목록 테이블
 ══════════════════════════════════════════ */

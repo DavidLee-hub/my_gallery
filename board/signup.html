@@ -26,6 +26,18 @@
       <form class="login-form" id="signup-form">
 
         <div class="form-group">
+          <label class="form-label" for="nickname">닉네임</label>
+          <input
+            class="form-input"
+            id="nickname"
+            type="text"
+            placeholder="게시판에 표시될 이름 (2~20자)"
+            maxlength="20"
+            required
+          >
+        </div>
+
+        <div class="form-group">
           <label class="form-label" for="email">이메일</label>
           <input
             class="form-input"
@@ -96,13 +108,20 @@
     document.getElementById('signup-form').addEventListener('submit', async e => {
       e.preventDefault();
 
-      const btn     = document.getElementById('submit-btn');
-      const errMsg  = document.getElementById('error-msg');
-      const email   = document.getElementById('email').value.trim();
+      const btn      = document.getElementById('submit-btn');
+      const errMsg   = document.getElementById('error-msg');
+      const nickname = document.getElementById('nickname').value.trim();
+      const email    = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       const confirm  = document.getElementById('password-confirm').value;
 
       errMsg.style.display = 'none';
+
+      if (nickname.length < 2) {
+        errMsg.textContent   = '닉네임을 2자 이상 입력해주세요.';
+        errMsg.style.display = 'block';
+        return;
+      }
 
       // 비밀번호 일치 확인
       if (password !== confirm) {
@@ -114,7 +133,10 @@
       btn.disabled    = true;
       btn.textContent = '가입 중...';
 
-      const { error } = await db.auth.signUp({ email, password });
+      const { error } = await db.auth.signUp({
+        email, password,
+        options: { data: { nickname } }
+      });
 
       if (error) {
         const msg = error.message === 'User already registered'

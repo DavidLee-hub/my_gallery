@@ -27,6 +27,14 @@
       <a href="write.html" class="btn btn-outline" id="btn-write" style="display:none;">글쓰기</a>
     </div>
 
+    <!-- 검색 바 -->
+    <div class="search-bar">
+      <input type="search" class="form-input" id="search-input"
+        placeholder="제목 또는 내용으로 검색..." style="flex:1;">
+      <button type="button" class="btn btn-outline" id="search-btn">검색</button>
+      <button type="button" class="btn btn-ghost" id="search-clear" style="display:none;">초기화</button>
+    </div>
+
     <table class="board-table">
       <thead>
         <tr>
@@ -68,6 +76,7 @@
   <script>
     const PAGE_SIZE = 10;
     let currentPage = 1;
+    let currentQuery = '';
 
     function escapeHtml(str) {
       return String(str ?? '')
@@ -141,14 +150,20 @@
     }
 
     // 게시글 목록 조회
-    async function loadPosts(page) {
+    async function loadPosts(page, query = currentQuery) {
       currentPage  = page;
+      currentQuery = query;
       const from   = (page - 1) * PAGE_SIZE;
       const to     = from + PAGE_SIZE - 1;
 
-      const { data, error, count } = await db
-        .from('posts')
-        .select('id, title, nickname, created_at, views, comments(count)', { count: 'exact' })
+      let q = db.from('posts')
+        .select('id, title, nickname, created_at, views, comments(count)', { count: 'exact' });
+
+      if (query) {
+        q = q.or(`title.ilike.%${query}%,content.ilike.%${query}%`);
+      }
+
+      const { data, error, count } = await q
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -161,6 +176,23 @@
       renderPosts(data);
       renderPagination(count, page);
     }
+
+    // 검색
+    document.getElementById('search-btn').addEventListener('click', () => {
+      const q = document.getElementById('search-input').value.trim();
+      document.getElementById('search-clear').style.display = q ? '' : 'none';
+      loadPosts(1, q);
+    });
+
+    document.getElementById('search-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('search-btn').click();
+    });
+
+    document.getElementById('search-clear').addEventListener('click', () => {
+      document.getElementById('search-input').value = '';
+      document.getElementById('search-clear').style.display = 'none';
+      loadPosts(1, '');
+    });
 
     // 초기화
     async function init() {

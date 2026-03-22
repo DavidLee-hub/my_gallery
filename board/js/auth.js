@@ -41,10 +41,20 @@ async function getOptionalSession() {
   return session;
 }
 
-// 헤더 "로그아웃" 버튼 표시 + 클릭 시 로그아웃
+// 헤더 네비 업데이트: 닉네임(프로필 링크) + 로그아웃
 function initNav(session) {
   const el = document.getElementById('nav-user');
   if (!el || !session) return;
+
+  // 닉네임 프로필 링크 삽입
+  const nickname = session.user.user_metadata?.nickname
+    ?? session.user.email.split('@')[0];
+  const profileLink = document.createElement('a');
+  profileLink.href      = 'profile.html';
+  profileLink.className = 'nav-link';
+  profileLink.textContent = nickname;
+  el.parentNode.insertBefore(profileLink, el);
+
   el.textContent = '로그아웃';
   el.addEventListener('click', async e => {
     e.preventDefault();

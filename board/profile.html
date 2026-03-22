@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>내 프로필 — 현준의 사진 세상</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/board.css">
+</head>
+<body>
+
+  <!-- ── 헤더 ── -->
+  <header class="site-header">
+    <a href="../index.html" class="site-name" style="text-decoration:none;">현준의 사진 세상</a>
+    <nav class="site-nav">
+      <a href="../index.html" class="nav-link">Gallery</a>
+      <a href="index.html"    class="nav-link active">Board</a>
+      <a href="login.html"    class="nav-link" id="nav-user">로그인</a>
+    </nav>
+  </header>
+
+  <!-- ── 프로필 본문 ── -->
+  <main class="board-container">
+
+    <div class="board-page-header">
+      <h1 class="board-page-title">My Profile</h1>
+    </div>
+
+    <!-- 프로필 정보 카드 -->
+    <div class="profile-card">
+
+      <!-- 이메일 -->
+      <div class="profile-row">
+        <span class="profile-label">이메일</span>
+        <span class="profile-value" id="profile-email"></span>
+      </div>
+
+      <!-- 닉네임 변경 -->
+      <div class="profile-row">
+        <span class="profile-label">닉네임</span>
+        <div class="profile-nickname-area">
+          <span class="profile-value" id="profile-nickname"></span>
+          <button type="button" class="btn btn-ghost" id="btn-edit-nick"
+            style="padding:4px 10px; font-size:11px;">변경</button>
+        </div>
+      </div>
+
+      <!-- 닉네임 수정 폼 (기본 숨김) -->
+      <div id="nickname-edit-form" style="display:none;" class="profile-row">
+        <span class="profile-label"></span>
+        <div style="display:flex; gap:8px; flex:1;">
+          <input type="text" class="form-input" id="nickname-input"
+            placeholder="새 닉네임 (2~20자)" maxlength="20"
+            style="height:36px; font-size:13px;">
+          <button type="button" class="btn btn-primary" id="btn-save-nick"
+            style="padding:4px 14px; font-size:11px; white-space:nowrap;">저장</button>
+          <button type="button" class="btn btn-ghost" id="btn-cancel-nick"
+            style="padding:4px 10px; font-size:11px;">취소</button>
+        </div>
+      </div>
+
+      <p id="nick-msg" style="display:none; font-size:12px; padding:0 0 0 120px;"></p>
+
+    </div>
+
+    <!-- 내가 쓴 글 -->
+    <div class="board-page-header" style="margin-top:48px;">
+      <h2 class="board-page-title">내가 쓴 글</h2>
+      <span id="my-post-count" style="font-size:13px; color:var(--gray-500);"></span>
+    </div>
+
+    <table class="board-table">
+      <thead>
+        <tr>
+          <th class="col-num">번호</th>
+          <th class="col-title">제목</th>
+          <th class="col-date">등록일</th>
+          <th class="col-views">조회</th>
+        </tr>
+      </thead>
+      <tbody id="my-post-list"></tbody>
+    </table>
+
+    <p id="my-empty-msg"
+      style="display:none; text-align:center; padding:40px 0; font-size:14px; color:var(--gray-500);">
+      작성한 글이 없습니다.
+    </p>
+
+    <nav class="pagination" id="my-pagination" aria-label="내 글 페이지 탐색"></nav>
+
+  </main>
+
+  <!-- ── 푸터 ── -->
+  <footer class="site-footer">
+    <span style="font-size:14px; color:var(--gray-500);">현준의 사진 세상</span>
+    <span class="footer-sep">·</span>
+    <span style="font-size:14px; color:var(--gray-500);">2025</span>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    const PAGE_SIZE = 10;
+    let currentSession = null;
+    let currentPage    = 1;
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ── 초기화 ──────────────────────────────
+    async function init() {
+      currentSession = await requireAuth();
+      if (!currentSession) return;
+      initNav(currentSession);
+
+      const user     = currentSession.user;
+      const nickname = user.user_metadata?.nickname ?? user.email.split('@')[0];
+
+      document.getElementById('profile-email').textContent    = user.email;
+      document.getElementById('profile-nickname').textContent = nickname;
+      document.getElementById('nickname-input').value         = nickname;
+
+      await loadMyPosts(1);
+    }
+
+    // ── 닉네임 변경 ─────────────────────────
+    document.getElementById('btn-edit-nick').addEventListener('click', () => {
+      document.getElementById('nickname-edit-form').style.display = '';
+      document.getElementById('btn-edit-nick').style.display      = 'none';
+      document.getElementById('nickname-input').focus();
+    });
+
+    document.getElementById('btn-cancel-nick').addEventListener('click', () => {
+      document.getElementById('nickname-edit-form').style.display = 'none';
+      document.getElementById('btn-edit-nick').style.display      = '';
+      document.getElementById('nick-msg').style.display           = 'none';
+    });
+
+    document.getElementById('btn-save-nick').addEventListener('click', async () => {
+      const newNick = document.getElementById('nickname-input').value.trim();
+      const msgEl   = document.getElementById('nick-msg');
+      msgEl.style.display = 'none';
+
+      if (newNick.length < 2) {
+        msgEl.textContent   = '닉네임을 2자 이상 입력해주세요.';
+        msgEl.style.color   = 'var(--c-warning)';
+        msgEl.style.display = 'block';
+        return;
+      }
+
+      const { error } = await db.auth.updateUser({ data: { nickname: newNick } });
+      if (error) {
+        msgEl.textContent   = '변경 중 오류가 발생했습니다.';
+        msgEl.style.color   = 'var(--c-warning)';
+        msgEl.style.display = 'block';
+        return;
+      }
+
+      document.getElementById('profile-nickname').textContent    = newNick;
+      document.getElementById('nickname-edit-form').style.display = 'none';
+      document.getElementById('btn-edit-nick').style.display      = '';
+      msgEl.textContent   = '닉네임이 변경되었습니다.';
+      msgEl.style.color   = 'var(--c-primary)';
+      msgEl.style.display = 'block';
+      setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+    });
+
+    // ── 내가 쓴 글 ──────────────────────────
+    async function loadMyPosts(page) {
+      currentPage  = page;
+      const from   = (page - 1) * PAGE_SIZE;
+      const to     = from + PAGE_SIZE - 1;
+
+      const { data, error, count } = await db
+        .from('posts')
+        .select('id, title, created_at, views', { count: 'exact' })
+        .eq('author_id', currentSession.user.id)
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (error) { console.error(error); return; }
+
+      document.getElementById('my-post-count').textContent =
+        count ? `총 ${count}개` : '';
+
+      const tbody   = document.getElementById('my-post-list');
+      const emptyEl = document.getElementById('my-empty-msg');
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML      = '';
+        emptyEl.style.display = 'block';
+        document.getElementById('my-pagination').innerHTML = '';
+        return;
+      }
+
+      emptyEl.style.display = 'none';
+      tbody.innerHTML = data.map(post => `
+        <tr>
+          <td class="col-num">${post.id}</td>
+          <td class="col-title">
+            <a class="post-link" href="board-detail.html?id=${post.id}">
+              ${escapeHtml(post.title)}
+            </a>
+          </td>
+          <td class="col-date">${post.created_at.slice(0, 10)}</td>
+          <td class="col-views">${post.views ?? 0}</td>
+        </tr>
+      `).join('');
+
+      renderPagination(count, page);
+    }
+
+    function renderPagination(total, page) {
+      const nav        = document.getElementById('my-pagination');
+      const totalPages = Math.ceil(total / PAGE_SIZE);
+      if (totalPages <= 1) { nav.innerHTML = ''; return; }
+
+      const btns = [];
+      btns.push(`<button class="page-btn" ${page === 1 ? 'disabled' : ''}
+        onclick="loadMyPosts(${page - 1})">&#8592;</button>`);
+
+      const start = Math.max(1, page - 4);
+      const end   = Math.min(totalPages, start + 9);
+      for (let p = start; p <= end; p++) {
+        btns.push(`<button class="page-btn ${p === page ? 'active' : ''}"
+          onclick="loadMyPosts(${p})">${p}</button>`);
+      }
+
+      btns.push(`<button class="page-btn" ${page === totalPages ? 'disabled' : ''}
+        onclick="loadMyPosts(${page + 1})">&#8594;</button>`);
+
+      nav.innerHTML = btns.join('');
+    }
+
+    init();
+  </script>
+
+</body>
+</html>
