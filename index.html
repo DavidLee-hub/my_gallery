@@ -3,68 +3,167 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gallery</title>
-  <link rel="stylesheet" href="css/style.css">
+  <title>현준의 사진 세상</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background: #0D1B2A;
+    }
+
+    /* 전체 화면 배경 */
+    .intro-bg {
+      position: fixed;
+      inset: 0;
+      background-image: url('img/long-exposure/빛의 바다.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-color: #0D1B2A;
+    }
+
+    /* 어두운 오버레이 */
+    .intro-overlay {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(13, 27, 42, 0.45) 0%,
+        rgba(13, 27, 42, 0.62) 100%
+      );
+    }
+
+    /* 컨텐츠 중앙 배치 */
+    .intro-content {
+      position: relative;
+      z-index: 10;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 40px;
+      opacity: 0;
+      animation: fadeIn 1.2s ease 0.3s forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 액센트 라인 */
+    .intro-accent {
+      width: 3px;
+      height: 48px;
+      background: #E8A848;
+      border-radius: 2px;
+      opacity: 0.9;
+    }
+
+    /* 사이트 이름 */
+    .intro-title {
+      text-align: center;
+      color: #F8FBFC;
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 300;
+      letter-spacing: 0.28em;
+      text-shadow: 0 2px 24px rgba(0,0,0,0.6);
+    }
+
+    .intro-title em {
+      display: block;
+      font-style: normal;
+      font-size: clamp(12px, 1.8vw, 16px);
+      font-weight: 400;
+      letter-spacing: 0.42em;
+      color: #D6E8EE;
+      text-transform: uppercase;
+      margin-top: 10px;
+      opacity: 0.85;
+    }
+
+    /* 갤러리 입장 버튼 */
+    .intro-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 36px;
+      border: 1px solid rgba(248, 251, 252, 0.55);
+      background: rgba(13, 27, 42, 0.35);
+      color: #F8FBFC;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      transition: background 0.3s, border-color 0.3s, color 0.3s;
+    }
+
+    .intro-btn:hover {
+      background: rgba(78, 139, 168, 0.55);
+      border-color: rgba(232, 168, 72, 0.8);
+      color: #fff;
+    }
+
+    .intro-btn-arrow {
+      font-size: 16px;
+      transition: transform 0.25s ease;
+    }
+
+    .intro-btn:hover .intro-btn-arrow {
+      transform: translateX(4px);
+    }
+
+    /* 하단 힌트 텍스트 */
+    .intro-footer {
+      position: fixed;
+      bottom: 28px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(214, 232, 238, 0.45);
+      z-index: 10;
+    }
+
+    @media (max-width: 640px) {
+      .intro-content { gap: 28px; }
+      .intro-accent  { height: 32px; }
+      .intro-btn     { padding: 12px 28px; font-size: 12px; }
+    }
+  </style>
 </head>
 <body>
+  <div class="intro-bg"></div>
+  <div class="intro-overlay"></div>
 
-  <!-- ── 헤더 ── -->
-  <header class="site-header">
-    <span class="site-name">현준의 사진 세상</span>
-    <nav class="site-nav">
-      <a href="board/index.html" class="nav-link">Board</a>
-    </nav>
-  </header>
+  <main class="intro-content">
+    <div class="intro-accent"></div>
 
-  <!-- ── 카테고리 바 ── -->
-  <div class="cat-bar">
-    <button class="cat-btn active" data-cat="all">전체</button>
-    <button class="cat-btn" data-cat="travel">여행사진</button>
-    <button class="cat-btn" data-cat="long-exposure">장노출</button>
-    <button class="cat-btn" data-cat="trajectory">궤적사진</button>
-    <button class="cat-btn" data-cat="typological">유형적</button>
-    <button class="cat-btn" data-cat="series">연작시리즈</button>
-    <button class="cat-btn" data-cat="recent">최근 작업</button>
-  </div>
+    <h1 class="intro-title">
+      현준의 사진 세상
+      <em>Photography by Hyeonjun</em>
+    </h1>
 
-  <!-- ── 뷰어 (viewer-wrap: 스와이프 감지 / viewer-stage: 빈 상태 마운트) ── -->
-  <div class="viewer-wrap">
-    <button class="arrow arrow-prev" id="btn-prev" aria-label="이전">&#8592;</button>
-    <div class="viewer-stage">
-      <img class="main-photo" id="main-img" src="" alt="" draggable="false">
-    </div>
-    <button class="arrow arrow-next" id="btn-next" aria-label="다음">&#8594;</button>
-  </div>
+    <a class="intro-btn" href="gallery.html">
+      갤러리 입장
+      <span class="intro-btn-arrow">&#8594;</span>
+    </a>
+  </main>
 
-  <!-- ── 썸네일 스트립 ── -->
-  <div class="strip-outer">
-    <div class="strip-inner" id="strip"></div>
-  </div>
-
-  <!-- ── 메타 바 ── -->
-  <div class="meta-bar">
-    <div class="meta-left">
-      <div class="meta-title" id="meta-title"></div>
-      <div class="meta-sub"   id="meta-sub"></div>
-    </div>
-    <div class="meta-right" id="meta-exif"></div>
-  </div>
-
-  <!-- ── 전체 목록 토글 ── -->
-  <div class="grid-toggle-wrap">
-    <button class="grid-toggle-btn" id="btn-grid-toggle">전체 목록 보기</button>
-  </div>
-
-  <!-- ── 전체 목록 그리드 ── -->
-  <section class="photo-grid" id="photo-grid"></section>
-
-  <!-- ── 푸터 ── -->
-  <footer class="site-footer">
-    <span id="footer-name"></span>
-    <span class="footer-sep">·</span>
-    <span id="footer-year"></span>
-  </footer>
-
-  <script src="gallery.js"></script>
+  <p class="intro-footer">빛과 시간의 기록</p>
 </body>
 </html>
