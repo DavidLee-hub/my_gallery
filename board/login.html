@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인 — 현준의 사진 세상</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/board.css">
+  <style>
+    .keep-login-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--gray-400);
+      cursor: pointer;
+      user-select: none;
+    }
+    .keep-login-row input[type="checkbox"] {
+      accent-color: var(--c-primary);
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── 헤더 ── -->
+  <header class="site-header">
+    <a href="../index.html" class="site-name" style="text-decoration:none;">현준의 사진 세상</a>
+    <nav class="site-nav">
+      <a href="../index.html" class="nav-link">Gallery</a>
+      <a href="index.html"    class="nav-link active">Board</a>
+    </nav>
+  </header>
+
+  <!-- ── 로그인 카드 ── -->
+  <div class="login-outer">
+    <div class="login-card">
+      <h1 class="login-title">Sign In</h1>
+
+      <form class="login-form" id="login-form">
+
+        <div class="form-group">
+          <label class="form-label" for="email">이메일</label>
+          <input
+            class="form-input"
+            id="email"
+            type="email"
+            placeholder="example@email.com"
+            autocomplete="email"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">비밀번호</label>
+          <input
+            class="form-input"
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            autocomplete="current-password"
+            required
+          >
+        </div>
+
+        <!-- 자동 로그인 유지 -->
+        <label class="keep-login-row">
+          <input type="checkbox" id="keep-login">
+          자동 로그인 유지
+        </label>
+
+        <!-- 에러 메시지 -->
+        <p id="error-msg" style="display:none; font-size:12px; color:var(--c-warning); text-align:center;"></p>
+
+        <button type="submit" id="submit-btn" class="btn btn-primary" style="width:100%; justify-content:center; padding:12px;">
+          로그인
+        </button>
+
+      </form>
+
+      <p style="color:var(--gray-600); font-size:12px; margin-top:20px; text-align:center;">
+        계정이 없으신가요?
+        <a href="signup.html" style="color:var(--c-primary); text-decoration:none;">회원가입</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- ── 푸터 ── -->
+  <footer class="site-footer">
+    <span style="font-size:14px; color:var(--gray-500);">현준의 사진 세상</span>
+    <span class="footer-sep">·</span>
+    <span style="font-size:14px; color:var(--gray-500);">2025</span>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase.js"></script>
+  <script>
+    // 이미 로그인 상태면 목록으로 이동
+    db.auth.getSession().then(({ data: { session } }) => {
+      if (session) location.href = 'index.html';
+    });
+
+    document.getElementById('login-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn       = document.getElementById('submit-btn');
+      const errMsg    = document.getElementById('error-msg');
+      const email     = document.getElementById('email').value.trim();
+      const password  = document.getElementById('password').value;
+      const keepLogin = document.getElementById('keep-login').checked;
+
+      btn.disabled    = true;
+      btn.textContent = '로그인 중...';
+      errMsg.style.display = 'none';
+
+      const { error } = await db.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        errMsg.textContent   = '이메일 또는 비밀번호가 올바르지 않습니다.';
+        errMsg.style.display = 'block';
+        btn.disabled    = false;
+        btn.textContent = '로그인';
+      } else {
+        if (keepLogin) {
+          // 자동 로그인 유지: localStorage에 플래그 저장 (브라우저 재시작해도 유지)
+          localStorage.setItem('sb_keep_alive', 'true');
+          sessionStorage.removeItem('sb_active');
+        } else {
+          // 미체크: sessionStorage에만 플래그 저장 (브라우저 닫으면 사라짐)
+          localStorage.removeItem('sb_keep_alive');
+          sessionStorage.setItem('sb_active', 'true');
+        }
+        location.href = 'index.html';
+      }
+    });
+  </script>
+
+</body>
+</html>

@@ -60,7 +60,6 @@ body {
   align-items: center;
   justify-content: space-between;
   background: var(--gray-900);
-  border-bottom: 1px solid var(--c-border);
   box-shadow: 0 2px 16px rgba(0,0,0,0.5);
 }
 
@@ -130,7 +129,6 @@ body {
   align-items: center;
   gap: 4px;
   background: var(--gray-900);
-  border-bottom: 1px solid var(--c-border);
   overflow-x: auto;
   scrollbar-width: none;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);

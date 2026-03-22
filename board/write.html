@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>글쓰기 — 현준의 사진 세상</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/board.css">
+</head>
+<body>
+
+  <!-- ── 헤더 ── -->
+  <header class="site-header">
+    <a href="../index.html" class="site-name" style="text-decoration:none;">현준의 사진 세상</a>
+    <nav class="site-nav">
+      <a href="../index.html" class="nav-link">Gallery</a>
+      <a href="index.html"    class="nav-link active">Board</a>
+      <a href="#"             class="nav-link" id="nav-user"></a>
+    </nav>
+  </header>
+
+  <!-- ── 글쓰기 본문 ── -->
+  <main class="board-container">
+
+    <div class="board-page-header">
+      <h1 class="board-page-title" id="page-title">새 글 작성</h1>
+    </div>
+
+    <form class="write-form" id="write-form">
+
+      <!-- 제목 -->
+      <div class="form-group">
+        <label class="form-label" for="post-title">제목</label>
+        <input class="form-input" id="post-title" type="text" placeholder="제목을 입력하세요" maxlength="200">
+      </div>
+
+      <!-- 본문 -->
+      <div class="form-group">
+        <label class="form-label" for="post-content">내용</label>
+        <textarea class="form-textarea" id="post-content" placeholder="내용을 입력하세요"></textarea>
+      </div>
+
+      <!-- 파일 첨부 -->
+      <div class="form-group" id="file-section">
+        <label class="form-label">첨부파일</label>
+
+        <!-- 기존 파일 목록 (수정 모드) -->
+        <div id="existing-files"></div>
+
+        <!-- 드롭존 -->
+        <div class="file-drop-zone" id="drop-zone">
+          <input type="file" id="file-input" multiple accept="image/*,.pdf,.doc,.docx,.zip">
+          <p class="file-drop-text">파일을 클릭하거나 이곳에 끌어다 놓으세요</p>
+          <p class="file-drop-hint">이미지 파일은 미리보기가 표시됩니다</p>
+        </div>
+
+        <!-- 새 파일 미리보기 -->
+        <div class="file-previews" id="file-previews"></div>
+        <div id="file-list"></div>
+      </div>
+
+      <!-- 에러 메시지 -->
+      <p id="error-msg" style="display:none; font-size:13px; color:var(--c-warning);"></p>
+
+      <!-- 버튼 -->
+      <div class="form-actions">
+        <a href="index.html" class="btn btn-ghost" id="btn-cancel">취소</a>
+        <button type="submit" class="btn btn-primary" id="submit-btn">등록</button>
+      </div>
+
+    </form>
+  </main>
+
+  <!-- ── 푸터 ── -->
+  <footer class="site-footer">
+    <span style="font-size:14px; color:var(--gray-500);">현준의 사진 세상</span>
+    <span class="footer-sep">·</span>
+    <span style="font-size:14px; color:var(--gray-500);">2025</span>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    const params     = new URLSearchParams(location.search);
+    const isEditMode = params.get('mode') === 'edit';
+    const editPostId = parseInt(params.get('id'));
+
+    let currentSession = null;
+    // 새로 선택한 파일: { id, file } 형태로 관리
+    const newFiles = new Map();
+    let fileSeq = 0;
+
+    // ── 초기화 ──────────────────────────────
+    async function init() {
+      currentSession = await requireAuth();
+      if (!currentSession) return;
+      initNav(currentSession);
+
+      if (isEditMode && editPostId) {
+        document.getElementById('page-title').textContent    = '글 수정';
+        document.getElementById('submit-btn').textContent    = '수정 완료';
+        document.title = '글 수정 — 현준의 사진 세상';
+        document.getElementById('btn-cancel').href = `board-detail.html?id=${editPostId}`;
+        await loadPostForEdit();
+        await loadExistingFiles();
+      }
+    }
+
+    // ── 수정 모드: 기존 글 불러오기 ─────────
+    async function loadPostForEdit() {
+      const { data: post, error } = await db
+        .from('posts').select('title, content, author_id').eq('id', editPostId).single();
+
+      if (error || !post) { location.href = 'index.html'; return; }
+      if (post.author_id !== currentSession.user.id) {
+        alert('수정 권한이 없습니다.'); location.href = 'index.html'; return;
+      }
+      document.getElementById('post-title').value   = post.title;
+      document.getElementById('post-content').value = post.content;
+    }
+
+    // ── 수정 모드: 기존 첨부파일 불러오기 ───
+    async function loadExistingFiles() {
+      const { data: files } = await db
+        .from('files').select('*').eq('post_id', editPostId);
+      if (!files || files.length === 0) return;
+
+      const container = document.getElementById('existing-files');
+      container.innerHTML = `<p class="form-label" style="margin-bottom:8px;">기존 첨부파일</p>`;
+
+      files.forEach(f => {
+        const item = document.createElement('div');
+        item.className = 'file-item';
+        item.dataset.fileId = f.id;
+        item.dataset.storagePath = f.storage_path;
+        item.innerHTML = `
+          ${f.is_image ? `<img src="${f.file_url}" style="width:40px;height:40px;object-fit:cover;border:1px solid var(--c-border);flex-shrink:0;">` : ''}
+          <span class="file-item-name">${escapeHtml(f.file_name)}</span>
+          <button type="button" class="file-item-remove" data-id="${f.id}" data-path="${f.storage_path}">제거</button>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // ── 기존 파일 삭제 ──────────────────────
+    document.getElementById('existing-files').addEventListener('click', async e => {
+      const btn = e.target.closest('.file-item-remove');
+      if (!btn) return;
+      const fileId   = btn.dataset.id;
+      const filePath = btn.dataset.path;
+
+      await db.storage.from('board-files').remove([filePath]);
+      await db.from('files').delete().eq('id', fileId);
+      btn.closest('.file-item').remove();
+    });
+
+    // ── 새 파일 선택 미리보기 ───────────────
+    function addFilePreview(file) {
+      const id = fileSeq++;
+      newFiles.set(id, file);
+
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const item = document.createElement('div');
+          item.className = 'preview-item';
+          item.dataset.fileId = id;
+          item.innerHTML = `
+            <img src="${ev.target.result}" alt="${escapeHtml(file.name)}">
+            <button class="preview-remove" type="button" data-id="${id}">✕</button>
+          `;
+          document.getElementById('file-previews').appendChild(item);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        const item = document.createElement('div');
+        item.className = 'file-item';
+        item.dataset.fileId = id;
+        item.innerHTML = `
+          <span class="file-item-name">${escapeHtml(file.name)}</span>
+          <button class="file-item-remove" type="button" data-id="${id}">제거</button>
+        `;
+        document.getElementById('file-list').appendChild(item);
+      }
+    }
+
+    document.getElementById('file-input').addEventListener('change', e => {
+      Array.from(e.target.files).forEach(addFilePreview);
+      e.target.value = '';
+    });
+
+    // 이미지 미리보기 제거
+    document.getElementById('file-previews').addEventListener('click', e => {
+      const btn = e.target.closest('.preview-remove');
+      if (!btn) return;
+      newFiles.delete(parseInt(btn.dataset.id));
+      btn.closest('.preview-item').remove();
+    });
+
+    // 일반 파일 제거
+    document.getElementById('file-list').addEventListener('click', e => {
+      const btn = e.target.closest('.file-item-remove');
+      if (!btn) return;
+      newFiles.delete(parseInt(btn.dataset.id));
+      btn.closest('.file-item').remove();
+    });
+
+    // 드래그 앤 드롭
+    const dropZone = document.getElementById('drop-zone');
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      Array.from(e.dataTransfer.files).forEach(addFilePreview);
+    });
+
+    // ── 파일 업로드 ─────────────────────────
+    async function uploadFiles(postId) {
+      for (const [, file] of newFiles) {
+        const safeName    = file.name.replace(/\s+/g, '_');
+        const storagePath = `${postId}/${Date.now()}_${safeName}`;
+
+        const { error: upErr } = await db.storage
+          .from('board-files').upload(storagePath, file);
+        if (upErr) { console.error('업로드 오류:', upErr); continue; }
+
+        const { data: { publicUrl } } = db.storage
+          .from('board-files').getPublicUrl(storagePath);
+
+        await db.from('files').insert({
+          post_id:      postId,
+          file_name:    file.name,
+          storage_path: storagePath,
+          file_url:     publicUrl,
+          is_image:     file.type.startsWith('image/')
+        });
+      }
+    }
+
+    // ── 폼 제출 ─────────────────────────────
+    document.getElementById('write-form').addEventListener('submit', async e => {
+      e.preventDefault();
+
+      const errMsg  = document.getElementById('error-msg');
+      const btn     = document.getElementById('submit-btn');
+      const title   = document.getElementById('post-title').value.trim();
+      const content = document.getElementById('post-content').value.trim();
+
+      errMsg.style.display = 'none';
+
+      if (!title)   { errMsg.textContent = '제목을 입력하세요.';   errMsg.style.display = 'block'; return; }
+      if (!content) { errMsg.textContent = '내용을 입력하세요.';   errMsg.style.display = 'block'; return; }
+
+      btn.disabled    = true;
+      btn.textContent = '저장 중...';
+
+      if (isEditMode && editPostId) {
+        // ── 수정 ──
+        const { error } = await db.from('posts')
+          .update({ title, content, updated_at: new Date().toISOString() })
+          .eq('id', editPostId);
+
+        if (error) { showErr(btn); return; }
+        await uploadFiles(editPostId);
+        location.href = `board-detail.html?id=${editPostId}`;
+      } else {
+        // ── 새 글 ──
+        const { data: newPost, error } = await db.from('posts')
+          .insert({
+            title, content,
+            author_id: currentSession.user.id,
+            nickname:  currentSession.user.user_metadata?.nickname ?? currentSession.user.email
+          })
+          .select('id').single();
+
+        if (error) { showErr(btn); return; }
+        await uploadFiles(newPost.id);
+        location.href = 'index.html';
+      }
+    });
+
+    function showErr(btn) {
+      document.getElementById('error-msg').textContent   = '저장 중 오류가 발생했습니다.';
+      document.getElementById('error-msg').style.display = 'block';
+      btn.disabled    = false;
+      btn.textContent = isEditMode ? '수정 완료' : '등록';
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    init();
+  </script>
+
+</body>
+</html>

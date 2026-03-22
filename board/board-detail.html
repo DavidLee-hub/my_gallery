@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>게시글 — 현준의 사진 세상</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/board.css">
+</head>
+<body>
+
+  <!-- ── 헤더 ── -->
+  <header class="site-header">
+    <a href="../index.html" class="site-name" style="text-decoration:none;">현준의 사진 세상</a>
+    <nav class="site-nav">
+      <a href="../index.html" class="nav-link">Gallery</a>
+      <a href="index.html"    class="nav-link active">Board</a>
+      <a href="login.html"    class="nav-link" id="nav-user">로그인</a>
+    </nav>
+  </header>
+
+  <!-- ── 게시글 본문 ── -->
+  <main class="board-container">
+
+    <!-- 글을 찾을 수 없을 때 -->
+    <p id="not-found" style="display:none; text-align:center; padding:60px 0; color:var(--c-warning); font-size:14px;">
+      글을 찾을 수 없습니다.
+    </p>
+
+    <!-- 제목 + 메타 -->
+    <div class="post-header" id="post-header">
+      <h1 class="post-title" id="post-title"></h1>
+      <div class="post-meta">
+        <span class="post-meta-item">
+          <span class="post-meta-label">등록자</span>
+          <span class="post-meta-value" id="post-author"></span>
+        </span>
+        <span class="post-meta-item">
+          <span class="post-meta-label">등록일</span>
+          <span class="post-meta-value" id="post-date"></span>
+        </span>
+        <span class="post-meta-item">
+          <span class="post-meta-label">조회</span>
+          <span class="post-meta-value" id="post-views"></span>
+        </span>
+      </div>
+    </div>
+
+    <!-- 본문 -->
+    <div class="post-body" id="post-body"></div>
+
+    <!-- 첨부파일 -->
+    <div class="attachments" id="attachments" style="display:none;">
+      <p class="attachments-title" id="attach-title">첨부파일</p>
+      <div class="attachment-list" id="attachment-list"></div>
+    </div>
+
+    <!-- 좋아요 -->
+    <div class="like-area">
+      <button class="btn-like" id="btn-like" type="button">
+        <span class="like-icon" id="like-icon">♡</span>
+        <span class="like-count" id="like-count">0</span>
+      </button>
+    </div>
+
+    <!-- 수정 / 삭제 / 목록 버튼 -->
+    <div class="post-actions">
+      <a href="index.html" class="btn btn-ghost">목록으로</a>
+      <div class="post-actions-right">
+        <a href="#" class="btn btn-ghost"  id="btn-edit"   style="display:none;">수정</a>
+        <button type="button" class="btn btn-danger" id="btn-delete" style="display:none;">삭제</button>
+      </div>
+    </div>
+
+    <!-- ══ 댓글 ══ -->
+    <section class="comments-section" id="comments-section">
+      <h2 class="comments-heading">
+        Comments <span id="comment-count" style="color:var(--c-primary);">0</span>
+      </h2>
+      <div class="comment-list" id="comment-list"></div>
+
+      <form class="comment-form" id="comment-form" style="display:none;">
+        <textarea class="comment-textarea" id="comment-input"
+          placeholder="댓글을 입력하세요" maxlength="1000"></textarea>
+        <div class="comment-form-foot">
+          <button type="submit" class="btn btn-primary" id="comment-submit-btn">등록</button>
+        </div>
+      </form>
+
+      <p id="comment-login-notice"
+         style="display:none; font-size:13px; color:var(--gray-500); padding:16px 0;">
+        <a href="login.html" style="color:var(--c-primary); text-decoration:none;">로그인</a> 후 댓글을 작성할 수 있습니다.
+      </p>
+    </section>
+
+  </main>
+
+  <!-- ── 푸터 ── -->
+  <footer class="site-footer">
+    <span style="font-size:14px; color:var(--gray-500);">현준의 사진 세상</span>
+    <span class="footer-sep">·</span>
+    <span style="font-size:14px; color:var(--gray-500);">2025</span>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    const ADMIN_EMAIL = 'cslee830@naver.com';
+    const params  = new URLSearchParams(location.search);
+    const postId  = parseInt(params.get('id'));
+    if (!postId) location.href = 'index.html';
+
+    let currentSession = null;
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ── 초기화 ──────────────────────────────
+    async function init() {
+      currentSession = await getOptionalSession();
+
+      if (currentSession) {
+        initNav(currentSession);
+      } else {
+        document.getElementById('nav-user').href = 'login.html';
+      }
+
+      await Promise.all([loadPost(), loadFiles(), loadLikes(), loadComments()]);
+
+      if (currentSession) {
+        document.getElementById('comment-form').style.display          = '';
+      } else {
+        document.getElementById('comment-login-notice').style.display  = '';
+      }
+    }
+
+    // ── 게시글 ──────────────────────────────
+    async function loadPost() {
+      const { data: post, error } = await db
+        .from('posts').select('*').eq('id', postId).single();
+
+      if (error || !post) {
+        ['post-header','post-body','attachments','comments-section']
+          .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+        document.querySelector('.like-area').style.display  = 'none';
+        document.querySelector('.post-actions').style.display = 'none';
+        document.getElementById('not-found').style.display  = 'block';
+        return;
+      }
+
+      document.getElementById('post-title').textContent  = post.title;
+      document.getElementById('post-author').textContent = post.nickname;
+      document.getElementById('post-date').textContent   =
+        post.created_at.slice(0, 16).replace('T', ' ');
+      document.getElementById('post-views').textContent  = post.views + 1;
+      document.getElementById('post-body').textContent   = post.content;
+
+      db.rpc('increment_views', { p_id: postId })
+        .then(({ error }) => { if (error) console.error('increment_views:', error); });
+
+      if (currentSession) {
+        const isAuthor = currentSession.user.id    === post.author_id;
+        const isAdmin  = currentSession.user.email === ADMIN_EMAIL;
+        if (isAuthor) {
+          const editBtn = document.getElementById('btn-edit');
+          editBtn.style.display = '';
+          editBtn.href = `write.html?mode=edit&id=${postId}`;
+        }
+        if (isAuthor || isAdmin) {
+          document.getElementById('btn-delete').style.display = '';
+        }
+      }
+    }
+
+    // ── 첨부파일 ────────────────────────────
+    async function loadFiles() {
+      const { data: files } = await db
+        .from('files').select('*').eq('post_id', postId);
+      if (!files || files.length === 0) return;
+
+      document.getElementById('attachments').style.display = '';
+      document.getElementById('attach-title').textContent  = `첨부파일 (${files.length})`;
+
+      document.getElementById('attachment-list').innerHTML = files.map(f => `
+        <div class="attachment-item">
+          ${f.is_image
+            ? `<img class="attachment-thumb" src="${f.file_url}" alt="${escapeHtml(f.file_name)}">`
+            : ''}
+          <a class="attachment-name" href="${f.file_url}" target="_blank" download="${escapeHtml(f.file_name)}">
+            ${escapeHtml(f.file_name)}
+          </a>
+        </div>
+      `).join('');
+    }
+
+    // ── 좋아요 ──────────────────────────────
+    async function loadLikes() {
+      const { count } = await db
+        .from('likes').select('*', { count: 'exact', head: true }).eq('post_id', postId);
+      document.getElementById('like-count').textContent = count ?? 0;
+
+      if (currentSession) {
+        const { data } = await db.from('likes').select('user_id')
+          .eq('post_id', postId).eq('user_id', currentSession.user.id).maybeSingle();
+        if (data) {
+          document.getElementById('btn-like').classList.add('active');
+          document.getElementById('like-icon').textContent = '♥';
+        }
+      }
+    }
+
+    document.getElementById('btn-like').addEventListener('click', async () => {
+      if (!currentSession) { location.href = 'login.html'; return; }
+
+      const btn     = document.getElementById('btn-like');
+      const isLiked = btn.classList.contains('active');
+
+      if (isLiked) {
+        await db.from('likes').delete()
+          .eq('post_id', postId).eq('user_id', currentSession.user.id);
+      } else {
+        await db.from('likes').insert({ post_id: postId, user_id: currentSession.user.id });
+      }
+      await loadLikes();
+    });
+
+    // ── 게시글 삭제 ─────────────────────────
+    document.getElementById('btn-delete').addEventListener('click', async () => {
+      if (!confirm('정말 삭제하시겠습니까?')) return;
+      const { error } = await db.from('posts').delete().eq('id', postId);
+      if (error) { alert('삭제 중 오류가 발생했습니다.'); return; }
+      location.href = 'index.html';
+    });
+
+    // ── 댓글 ────────────────────────────────
+    async function loadComments() {
+      const { data: comments } = await db
+        .from('comments').select('*').eq('post_id', postId)
+        .order('created_at', { ascending: true });
+      renderComments(comments ?? []);
+    }
+
+    function renderComments(comments) {
+      document.getElementById('comment-count').textContent = comments.length;
+      const list = document.getElementById('comment-list');
+
+      if (comments.length === 0) {
+        list.innerHTML = `<p style="padding:20px 0; font-size:13px; color:var(--gray-600);">첫 댓글을 남겨보세요.</p>`;
+        return;
+      }
+
+      list.innerHTML = comments.map(c => {
+        const canDelete = currentSession?.user?.id === c.author_id
+                       || currentSession?.user?.email === ADMIN_EMAIL;
+        return `
+          <div class="comment-item">
+            <div class="comment-meta">
+              <span class="comment-author">${escapeHtml(c.nickname)}</span>
+              <span class="comment-date">${c.created_at.slice(0, 16).replace('T', ' ')}</span>
+              ${canDelete ? `<button class="comment-delete" data-id="${c.id}" type="button">삭제</button>` : ''}
+            </div>
+            <p class="comment-body">${escapeHtml(c.content)}</p>
+          </div>
+        `;
+      }).join('');
+    }
+
+    document.getElementById('comment-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      if (!currentSession) return;
+
+      const input   = document.getElementById('comment-input');
+      const btn     = document.getElementById('comment-submit-btn');
+      const content = input.value.trim();
+      if (!content) { input.focus(); return; }
+
+      btn.disabled = true; btn.textContent = '등록 중...';
+
+      const { error } = await db.from('comments').insert({
+        post_id:   postId,
+        author_id: currentSession.user.id,
+        nickname:  currentSession.user.user_metadata?.nickname ?? currentSession.user.email,
+        content
+      });
+
+      btn.disabled = false; btn.textContent = '등록';
+      if (error) { alert('댓글 등록 중 오류가 발생했습니다.'); return; }
+
+      input.value = '';
+      await loadComments();
+    });
+
+    document.getElementById('comment-list').addEventListener('click', async e => {
+      const btn = e.target.closest('.comment-delete');
+      if (!btn) return;
+      if (!confirm('댓글을 삭제하시겠습니까?')) return;
+      const { error } = await db.from('comments').delete().eq('id', parseInt(btn.dataset.id));
+      if (error) { alert('삭제 중 오류가 발생했습니다.'); return; }
+      await loadComments();
+    });
+
+    init();
+  </script>
+
+</body>
+</html>
