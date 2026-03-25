@@ -247,8 +247,10 @@
       await db.from('comments').delete().eq('post_id', postId);
 
       // 4. 게시글 삭제
-      const { error } = await db.from('posts').delete().eq('id', postId);
-      if (error) { alert('삭제 중 오류가 발생했습니다.'); return; }
+      const { error, count } = await db.from('posts').delete({ count: 'exact' }).eq('id', postId);
+      console.log('[delete] error:', error, '| count:', count, '| session uid:', currentSession?.user?.id);
+      if (error) { alert('삭제 중 오류가 발생했습니다.\n' + error.message); return; }
+      if (count === 0) { alert('삭제 권한이 없거나 RLS 정책에 의해 차단되었습니다.'); return; }
       location.href = 'index.html';
     });
 
