@@ -15,11 +15,45 @@ const CONFIG = {
 // ─────────────────────────────────────────────────────────
 
 
+// ── 카테고리 구조 ───────────────────────────────────────────
+const CATEGORIES = {
+  'travel': {
+    label: 'Travel',
+    subs: {
+      'seoul-gyenggi': 'Seoul / Gyeonggi',
+      'incheon':       'Incheon',
+      'ganwon':        'Gangwon',
+      'chungcheong':   'Chungcheong',
+      'jeila':         'Jeolla',
+      'gyengsang':     'Gyeongsang',
+      'jeju':          'Jeju',
+    }
+  },
+  'long-exposure': { label: 'Long Exposure', subs: null },
+  'trajectory':    { label: 'Trajectory',    subs: null },
+  'typological': {
+    label: 'Typological',
+    subs: {
+      'lighthouses': 'Lighthouses',
+    }
+  },
+  'series': {
+    label: 'Series',
+    subs: {
+      'goyang-ilsan': 'Goyang Ilsan',
+      'jeju':         'Jeju',
+    }
+  },
+  'sunrise-sunset': { label: 'Sunrise / Sunset', subs: null },
+  'recent': { label: 'Recent', subs: null },
+};
+
 // ── 전역 상태 ──────────────────────────────────────────────
 let allPhotos    = [];   // photos.json 에서 읽어온 전체 목록
 let filtered     = [];   // 현재 카테고리로 필터된 목록
 let currentIndex = 0;    // 뷰어에서 현재 보고 있는 사진 번호
 let currentCat   = 'all';
+let currentSub   = null;
 let gridOpen     = false;
 
 
@@ -60,6 +94,45 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+// ── 서브 카테고리 바 ─────────────────────────────────────────
+const subBar = document.getElementById('sub-bar');
+
+function updateSubBar(cat) {
+  const catData = CATEGORIES[cat];
+  subBar.innerHTML = '';
+
+  if (!catData || !catData.subs || Object.keys(catData.subs).length === 0) {
+    subBar.classList.remove('visible');
+    return;
+  }
+
+  subBar.classList.add('visible');
+
+  // 전체 서브버튼
+  const allBtn = document.createElement('button');
+  allBtn.className = 'sub-btn active';
+  allBtn.textContent = '전체';
+  allBtn.dataset.sub = '';
+  subBar.appendChild(allBtn);
+
+  Object.entries(catData.subs).forEach(([key, label]) => {
+    const btn = document.createElement('button');
+    btn.className = 'sub-btn';
+    btn.textContent = label;
+    btn.dataset.sub = key;
+    subBar.appendChild(btn);
+  });
+
+  subBar.querySelectorAll('.sub-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      subBar.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentSub = btn.dataset.sub || null;
+      applyFilter(currentCat, currentSub);
+    });
+  });
+}
+
 // ── 카테고리 필터 ───────────────────────────────────────────
 catBtns.forEach(btn => {
   btn.addEventListener('click', () => {
@@ -67,14 +140,20 @@ catBtns.forEach(btn => {
     catBtns.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentCat = cat;
-    applyFilter(cat);
+    currentSub = null;
+    updateSubBar(cat);
+    applyFilter(cat, null);
   });
 });
 
-function applyFilter(cat) {
-  filtered = cat === 'all'
+function applyFilter(cat, sub = null) {
+  let result = cat === 'all'
     ? [...allPhotos]
     : allPhotos.filter(p => p.category === cat);
+
+  if (sub) result = result.filter(p => p.subcategory === sub);
+
+  filtered = result;
 
   // 날짜 내림차순 정렬
   filtered.sort((a, b) => {
@@ -138,7 +217,7 @@ function updateMeta(photo) {
     : '';
 
   const subParts = [];
-  if (photo.category) subParts.push(catLabel(photo.category));
+  if (photo.category) subParts.push(catLabel(photo.category, photo.subcategory));
   if (photo.location) subParts.push(photo.location);
   metaSub.textContent = subParts.join('  ·  ');
 
@@ -156,16 +235,13 @@ function updateMeta(photo) {
     .join('');
 }
 
-function catLabel(cat) {
-  const map = {
-    'travel':       '여행사진',
-    'long-exposure':'장노출',
-    'trajectory':   '궤적사진',
-    'typological':  '유형적',
-    'series':       '연작시리즈',
-    'recent':       '최근 작업',
-  };
-  return map[cat] || cat;
+function catLabel(cat, sub) {
+  const catData = CATEGORIES[cat];
+  const mainLabel = catData ? catData.label : cat;
+  if (sub && catData?.subs?.[sub]) {
+    return `${mainLabel} · ${catData.subs[sub]}`;
+  }
+  return mainLabel;
 }
 
 // 화살표 버튼

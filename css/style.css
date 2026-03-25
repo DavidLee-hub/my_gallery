@@ -179,6 +179,70 @@ body {
 }
 
 /* ══════════════════════════════════════════
+   서브 카테고리 바
+══════════════════════════════════════════ */
+.sub-bar {
+  display: none;
+  padding: 0 40px;
+  gap: 4px;
+  align-items: center;
+  background: var(--gray-800);
+  border-bottom: 1px solid var(--c-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  height: 0;
+  transition: height 0.2s ease;
+}
+.sub-bar::-webkit-scrollbar { display: none; }
+
+.sub-bar.visible {
+  display: flex;
+  height: 36px;
+}
+
+.sub-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--gray-500);
+  font-weight: 400;
+  padding: 4px 12px;
+  font-family: inherit;
+  border-radius: 2px;
+  transition: color 0.2s, background 0.2s;
+  position: relative;
+}
+
+.sub-btn::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: var(--c-accent);
+  transform: scaleX(0);
+  transition: transform 0.2s ease;
+}
+
+.sub-btn.active {
+  color: var(--c-accent);
+  font-weight: 600;
+}
+
+.sub-btn.active::after {
+  transform: scaleX(1);
+}
+
+.sub-btn:hover {
+  color: var(--c-text-muted);
+  background: rgba(78,139,168,0.10);
+}
+
+/* ══════════════════════════════════════════
    뷰어 — min-height 60vh
 ══════════════════════════════════════════ */
 .viewer-wrap {
@@ -457,6 +521,9 @@ body {
     padding: 0 20px;
   }
   .cat-btn { font-size: 11px; }
+
+  .sub-bar { padding: 0 20px; }
+  .sub-btn { font-size: 11px; }
 
   .viewer-wrap {
     min-height: 50vw;
