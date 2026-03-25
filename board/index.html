@@ -91,7 +91,7 @@
     }
 
     // 게시글 목록 렌더링
-    function renderPosts(posts) {
+    function renderPosts(posts, total, page) {
       const tbody   = document.getElementById('post-list');
       const emptyEl = document.getElementById('empty-msg');
 
@@ -102,14 +102,15 @@
       }
 
       emptyEl.style.display = 'none';
-      tbody.innerHTML = posts.map(post => {
+      tbody.innerHTML = posts.map((post, index) => {
+        const rowNum = total - (page - 1) * PAGE_SIZE - index;
         const commentCount = post.comments?.[0]?.count ?? 0;
         const badge = commentCount > 0
           ? `<span class="comment-badge">[${commentCount}]</span>`
           : '';
         return `
           <tr>
-            <td class="col-num">${post.id}</td>
+            <td class="col-num">${rowNum}</td>
             <td class="col-title">
               <a class="post-link" href="board-detail.html?id=${post.id}">${escapeHtml(post.title)}</a>${badge}
             </td>
@@ -173,7 +174,7 @@
         return;
       }
 
-      renderPosts(data);
+      renderPosts(data, count, page);
       renderPagination(count, page);
     }
 
