@@ -232,30 +232,36 @@
     document.getElementById('btn-delete').addEventListener('click', async () => {
       if (!confirm('정말 삭제하시겠습니까?')) return;
 
-      // 세션 토큰 명시적 재확인
+      // 세션 토큰 확인
       const { data: { session: freshSession } } = await db.auth.getSession();
       if (!freshSession) { alert('로그인 세션이 만료되었습니다. 다시 로그인해 주세요.'); location.href = 'login.html'; return; }
-      await db.auth.setSession({ access_token: freshSession.access_token, refresh_token: freshSession.refresh_token });
+
+      // Authorization 헤더를 직접 삽입한 전용 클라이언트 생성 (Edge 추적방지 우회)
+      const { createClient } = supabase;
+      const adb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: `Bearer ${freshSession.access_token}` } },
+        auth:   { persistSession: false }
+      });
 
       // 1. 첨부 파일 Storage + files 테이블 삭제
-      const { data: files } = await db.from('files').select('id, storage_path').eq('post_id', postId);
+      const { data: files } = await adb.from('files').select('id, storage_path').eq('post_id', postId);
       if (files && files.length > 0) {
         const paths = files.map(f => f.storage_path);
-        await db.storage.from('board-files').remove(paths);
-        await db.from('files').delete().eq('post_id', postId);
+        await adb.storage.from('board-files').remove(paths);
+        await adb.from('files').delete().eq('post_id', postId);
       }
 
       // 2. 좋아요 삭제
-      await db.from('likes').delete().eq('post_id', postId);
+      await adb.from('likes').delete().eq('post_id', postId);
 
       // 3. 댓글 삭제
-      await db.from('comments').delete().eq('post_id', postId);
+      await adb.from('comments').delete().eq('post_id', postId);
 
       // 4. 게시글 삭제
-      const { error, count } = await db.from('posts').delete({ count: 'exact' }).eq('id', postId);
-      console.log('[delete] error:', error, '| count:', count, '| session uid:', currentSession?.user?.id);
+      const { error, count } = await adb.from('posts').delete({ count: 'exact' }).eq('id', postId);
+      console.log('[delete] error:', error, '| count:', count, '| uid:', freshSession.user.id);
       if (error) { alert('삭제 중 오류가 발생했습니다.\n' + error.message); return; }
-      if (count === 0) { alert('삭제 권한이 없거나 RLS 정책에 의해 차단되었습니다.'); return; }
+      if (count === 0) { alert('삭제 권한 없음 (uid: ' + freshSession.user.id + ')'); return; }
       location.href = 'index.html';
     });
 
